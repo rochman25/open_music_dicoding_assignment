@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const mapDBToModel = ({
   id,
   title,
@@ -5,8 +6,8 @@ const mapDBToModel = ({
   performer,
   genre,
   duration,
-  insertedAt,
-  updatedAt,
+  created_at,
+  updated_at,
 }) => ({
   id,
   title,
@@ -14,8 +15,8 @@ const mapDBToModel = ({
   performer,
   genre,
   duration,
-  insertedAt,
-  updatedAt,
+  insertedAt: created_at,
+  updatedAt: updated_at,
 });
 
 module.exports = { mapDBToModel };
