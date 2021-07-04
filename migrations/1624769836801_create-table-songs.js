@@ -16,7 +16,7 @@ exports.up = (pgm) => {
     },
 
     year: {
-      type: 'NUMERIC',
+      type: 'REAL',
       notNull: true,
     },
 
@@ -31,7 +31,7 @@ exports.up = (pgm) => {
     },
 
     duration: {
-      type: 'NUMERIC',
+      type: 'REAL',
       notNull: true,
     },
 
