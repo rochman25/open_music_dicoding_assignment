@@ -6,6 +6,7 @@ const { mapDBToModel } = require('../../utils/playlist');
 const { mapDBToModel: songMapDBToModel } = require('../../utils/index');
 const NotFoundError = require('../../exceptions/NotFoundError');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
+const ClientError = require('../../exceptions/ClientError');
 
 class PlaylistService {
   constructor() {
@@ -96,6 +97,19 @@ class PlaylistService {
     };
     const result = await this._pool.query(query);
     return result.rows.map(songMapDBToModel);
+  }
+
+  async deleteSongFromPlaylist(id, song) {
+    const query = {
+      text: 'DELETE FROM playlist_songs WHERE song = $1 AND playlist = $2 RETURNING song',
+      values: [song, id],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
+      throw new ClientError('Lagu gagal dihapus. lagu tidak ditemukan');
+    }
   }
 }
 

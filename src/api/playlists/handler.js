@@ -11,6 +11,7 @@ class PLaylistHandler {
     this.deletePlaylistByIdHandler = this.deletePlaylistByIdHandler.bind(this);
     this.postSongToPlaylistHandler = this.postSongToPlaylistHandler.bind(this);
     this.getSongByPlaylistsHandler = this.getSongByPlaylistsHandler.bind(this);
+    this.deleteSongFromPlaylistHandler = this.deleteSongFromPlaylistHandler.bind(this);
   }
 
   async postPlaylistHandler(request, h) {
@@ -164,6 +165,42 @@ class PLaylistHandler {
       });
       console.error(error);
       response.code(500);
+      return response;
+    }
+  }
+
+  async deleteSongFromPlaylistHandler(request, h) {
+    try {
+      const { id } = request.params;
+      this._validator.validateSongPlaylistPayload(request.payload);
+      const {
+        songId,
+      } = request.payload;
+      const { id: credentialId } = request.auth.credentials;
+
+      await this._service.verifyPlaylistOwner(id, credentialId);
+      await this._service.deleteSongFromPlaylist(id, songId);
+      return {
+        status: 'success',
+        message: 'Lagu berhasil dihapus dari playlist',
+      };
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // Server ERROR!
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.log(error);
       return response;
     }
   }
