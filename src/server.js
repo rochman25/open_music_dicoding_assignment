@@ -5,8 +5,13 @@ const songs = require('./api/songs');
 const SongService = require('./services/postgres/SongService');
 const SongValidator = require('./validator/songs');
 
+const users = require('./api/users');
+const UserService = require('./services/postgres/UserService');
+const UsersValidator = require('./validator/users');
+
 const init = async () => {
   const songService = new SongService();
+  const userService = new UserService();
   const server = Hapi.server({
     port: process.env.PORT,
     host: process.env.HOST,
@@ -17,13 +22,22 @@ const init = async () => {
     },
   });
 
-  await server.register({
-    plugin: songs,
-    options: {
-      service: songService,
-      validator: SongValidator,
+  await server.register([
+    {
+      plugin: songs,
+      options: {
+        service: songService,
+        validator: SongValidator,
+      },
     },
-  });
+    {
+      plugin: users,
+      options: {
+        service: userService,
+        validator: UsersValidator,
+      },
+    },
+  ]);
 
   await server.start();
   console.log(`Server berjalan pada ${server.info.uri}`);
