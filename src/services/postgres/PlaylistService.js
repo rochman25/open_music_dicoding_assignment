@@ -63,12 +63,27 @@ class PlaylistService {
     };
     const result = await this._pool.query(query);
     if (!result.rows.length) {
-      throw new NotFoundError('Catatan tidak ditemukan');
+      throw new NotFoundError('Playlist tidak ditemukan');
     }
     const note = result.rows[0];
     if (note.owner !== owner) {
       throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
     }
+  }
+
+  async addSongToPlaylist({ playlist, song }) {
+    const query = {
+      text: 'INSERT INTO playlist_songs VALUES($1, $2) RETURNING song',
+      values: [song, playlist],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows[0].song) {
+      throw new InvariantError('Lagu gagal ditambahkan ke playlist');
+    }
+
+    return result.rows[0].song;
   }
 }
 
