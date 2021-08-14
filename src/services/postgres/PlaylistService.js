@@ -2,6 +2,7 @@
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
+const { mapDBToModel } = require('../../utils/playlist');
 
 class PlaylistService {
   constructor() {
@@ -27,6 +28,17 @@ class PlaylistService {
     }
 
     return result.rows[0].id;
+  }
+
+  async getPlaylists(owner) {
+    const query = {
+      text: `SELECT playlists.*, users.username FROM playlists
+      LEFT JOIN users ON users.id = playlists.owner
+      WHERE playlists.owner = $1`,
+      values: [owner],
+    };
+    const result = await this._pool.query(query);
+    return result.rows.map(mapDBToModel);
   }
 }
 
