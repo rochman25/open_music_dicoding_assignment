@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
 const { mapDBToModel } = require('../../utils/playlist');
+const { mapDBToModel: songMapDBToModel } = require('../../utils/index');
 const NotFoundError = require('../../exceptions/NotFoundError');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
 
@@ -84,6 +85,17 @@ class PlaylistService {
     }
 
     return result.rows[0].song;
+  }
+
+  async getSongsFromPlaylist(playlist) {
+    const query = {
+      text: `SELECT songs.id, songs.title, songs.performer FROM playlist_songs
+      LEFT JOIN songs ON songs.id = playlist_songs.song
+      WHERE playlist_songs.playlist = $1`,
+      values: [playlist],
+    };
+    const result = await this._pool.query(query);
+    return result.rows.map(songMapDBToModel);
   }
 }
 
