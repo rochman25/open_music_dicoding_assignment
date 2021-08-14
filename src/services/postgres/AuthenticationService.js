@@ -1,43 +1,45 @@
 /* eslint-disable no-underscore-dangle */
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
-const { nanoid } = require('nanoid');
-const InvariantError = require('../../exceptions/InvariantError');
 const AuthenticationError = require('../../exceptions/AuthenticationError');
+const InvariantError = require('../../exceptions/InvariantError');
 
-class UserService {
+class AuthenticationsService {
   constructor() {
     this._pool = new Pool();
   }
 
-  async verifyNewUsername(username) {
+  async addRefreshToken(token) {
     const query = {
-      text: 'SELECT username FROM users WHERE username = $1',
-      values: [username],
+      text: 'INSERT INTO authentications VALUES($1)',
+      values: [token],
     };
 
-    const result = await this._pool.query(query);
-    if (result.rows.length > 0) {
-      throw new InvariantError('Gagal menambahkan user. Username sudah digunakan.');
-    }
+    await this._pool.query(query);
   }
 
-  async addUser({ username, password, fullname }) {
-    await this.verifyNewUsername(username);
-
-    const id = `user-${nanoid(16)}`;
-    const hashedPassword = await bcrypt.hash(password, 10);
+  async verifyRefreshToken(token) {
     const query = {
-      text: 'INSERT INTO users VALUES($1, $2, $3, $4) RETURNING id',
-      values: [id, username, hashedPassword, fullname],
+      text: 'SELECT token FROM authentications WHERE token = $1',
+      values: [token],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      throw new InvariantError('User gagal ditambahkan');
+      throw new InvariantError('Refresh token tidak valid');
     }
-    return result.rows[0].id;
+  }
+
+  async deleteRefreshToken(token) {
+    await this.verifyRefreshToken(token);
+
+    const query = {
+      text: 'DELETE FROM authentications WHERE token = $1',
+      values: [token],
+    };
+
+    await this._pool.query(query);
   }
 
   async verifyUserCredential(username, password) {
@@ -45,6 +47,7 @@ class UserService {
       text: 'SELECT id, password FROM users WHERE username = $1',
       values: [username],
     };
+
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
@@ -58,9 +61,8 @@ class UserService {
     if (!match) {
       throw new AuthenticationError('Kredensial yang Anda berikan salah');
     }
-
     return id;
   }
 }
 
-module.exports = UserService;
+module.exports = AuthenticationsService;
