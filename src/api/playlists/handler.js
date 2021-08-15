@@ -54,15 +54,35 @@ class PLaylistHandler {
     }
   }
 
-  async getPlaylistsHandler(request) {
-    const { id: credentialId } = request.auth.credentials;
-    const playlists = await this._service.getPlaylists(credentialId);
-    return {
-      status: 'success',
-      data: {
-        playlists,
-      },
-    };
+  async getPlaylistsHandler(request, h) {
+    try {
+      const { id: credentialId } = request.auth.credentials;
+      const playlists = await this._service.getPlaylists(credentialId);
+      return {
+        status: 'success',
+        data: {
+          playlists,
+        },
+      };
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // Server ERROR!
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.log(error);
+      return response;
+    }
   }
 
   async deletePlaylistByIdHandler(request, h) {
@@ -70,7 +90,7 @@ class PLaylistHandler {
       const { id } = request.params;
       const { id: credentialId } = request.auth.credentials;
 
-      await this._service.verifyPlaylistOwner(id, credentialId);
+      await this._service.verifyPlaylistOwner(id, credentialId, true);
       await this._service.deletePlaylistById(id);
       return {
         status: 'success',
