@@ -9,8 +9,9 @@ const AuthorizationError = require('../../exceptions/AuthorizationError');
 const ClientError = require('../../exceptions/ClientError');
 
 class PlaylistService {
-  constructor() {
+  constructor(cacheService) {
     this._pool = new Pool();
+    this._cacheService = cacheService;
   }
 
   async addPlaylist({
@@ -57,6 +58,7 @@ class PlaylistService {
     if (!result.rows.length) {
       throw new NotFoundError('Playlist gagal dihapus. Id tidak ditemukan');
     }
+    await this._cacheService.delete(`songs:${id}`);
   }
 
   async verifyPlaylistOwner(id, owner, deletePlaylist = false) {
@@ -96,19 +98,26 @@ class PlaylistService {
     if (!result.rows[0].song) {
       throw new InvariantError('Lagu gagal ditambahkan ke playlist');
     }
-
+    await this._cacheService.delete(`songs:${playlist}`);
     return result.rows[0].song;
   }
 
   async getSongsFromPlaylist(playlist) {
-    const query = {
-      text: `SELECT songs.id, songs.title, songs.performer FROM playlist_songs
-      LEFT JOIN songs ON songs.id = playlist_songs.song
-      WHERE playlist_songs.playlist = $1`,
-      values: [playlist],
-    };
-    const result = await this._pool.query(query);
-    return result.rows.map(songMapDBToModel);
+    try {
+      const result = await this._cacheService.get(`notes:${playlist}`);
+      return JSON.parse(result);
+    } catch (error) {
+      const query = {
+        text: `SELECT songs.id, songs.title, songs.performer FROM playlist_songs
+        LEFT JOIN songs ON songs.id = playlist_songs.song
+        WHERE playlist_songs.playlist = $1`,
+        values: [playlist],
+      };
+      const result = await this._pool.query(query);
+      const mappedResult = result.rows.map(songMapDBToModel);
+      await this._cacheService.set(`songs:${playlist}`, JSON.stringify(mappedResult));
+      return mappedResult;
+    }
   }
 
   async deleteSongFromPlaylist(id, song) {
@@ -122,6 +131,7 @@ class PlaylistService {
     if (!result.rows.length) {
       throw new ClientError('Lagu gagal dihapus. lagu tidak ditemukan');
     }
+    await this._cacheService.delete(`songs:${id}`);
   }
 }
 
